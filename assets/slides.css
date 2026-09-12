@@ -1,0 +1,542 @@
+/* Shared colors for slide backgrounds, text, borders, code, and quotations. */
+:root {
+  --bg: #ffffff;
+  --fg: #111111;
+  --muted: #555555;
+  --border: #999999;
+  --red: #b91c1c;
+  --code-bg: #fafbfc;
+  --code-border: #e5e7eb;
+  --quote-bg: #f7f7f7;
+}
+
+/* Reset browser spacing and include padding and borders in element dimensions. */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Let the document and body fill the browser viewport. */
+html,
+body {
+  height: 100%;
+}
+
+/* Presentation canvas: default typography and colors, with page scrolling disabled. */
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  overflow: hidden;
+}
+
+/* A single slide, including covers; hidden until navigation makes it active. */
+.slide {
+  position: absolute;
+  inset: 0;
+  /* Fill the viewport without an outer frame. */
+  display: none;
+  padding: 3vh 4vw;
+  overflow: hidden;
+  font-size: clamp(20px, 3.25vh, 35px);
+  line-height: 1.7;
+}
+
+/* Slide body or cover metadata container, measured and scaled by JavaScript. */
+.slide .inner {
+  position: relative;
+  z-index: 1;
+  /* Place content above the glow created by ::before. */
+  display: flow-root;
+  /* Contain outer margins and floats so measurements include all content. */
+  width: 100%;
+  overflow-wrap: anywhere;
+  transform-origin: top left;
+}
+
+/* Slide transitions: move the incoming and outgoing slides at the same speed.
+   JavaScript sets --dir to the navigation direction. Keep the slides adjacent
+   so they cover the viewport throughout the transition without a white flash. */
+.slide.active {
+  display: block;
+  z-index: 2;
+  animation: pagein .28s cubic-bezier(.22, .61, .36, 1);
+}
+
+/* Outgoing slide, kept beneath the incoming slide until its animation finishes. */
+.slide.leaving {
+  display: block;
+  z-index: 1;
+  animation: pageout .28s cubic-bezier(.22, .61, .36, 1);
+}
+
+/* Incoming slide starts one viewport width away in the navigation direction. */
+@keyframes pagein {
+  from {
+    transform: translateX(calc(100% * var(--dir, 1)));
+  }
+}
+
+/* Overlap the outgoing slide by 4px beneath the incoming slide to hide subpixel rounding gaps. */
+@keyframes pageout {
+  to {
+    transform: translateX(calc(var(--dir, 1) * (4px - 100%)));
+  }
+}
+
+/* Slides that must appear immediately without a navigation transition. */
+.slide.no-anim {
+  animation: none;
+}
+
+/* The title bar sits outside .inner and does not scale with the body.
+   Negative margins offset slide padding, keeping its square edges flush with
+   the top and sides. The dark glass effect blurs the glow created by ::before. */
+.slide .titlebar {
+  position: relative;
+  z-index: 2;
+  margin: -3vh -4vw .8em;
+  /* Slide padding is 3vh 4vw. */
+  padding: .3em 4vw;
+  /* Align with the left edge of body content (h2/p/li). */
+  background: rgba(59, 7, 100, .72);
+  /* Translucent purple-950 background. */
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  backdrop-filter: blur(14px) saturate(1.5);
+  border-bottom: 1px solid rgba(255, 255, 255, .25);
+}
+
+/* Cover H1 or content-slide H2 displayed inside the title banner. */
+.slide .titlebar :is(h1, h2) {
+  font-size: 1.55em;
+  margin: 0;
+  color: #fff;
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .55), 0 2px 10px rgba(0, 0, 0, .35);
+}
+
+/* Bold text inside banner titles uses a lighter accent against the dark background. */
+.slide .titlebar :is(h1, h2) :is(b, strong) {
+  color: #fca5a5;
+}
+
+/* Top-level headings within the slide body. */
+.slide .inner h1 {
+  font-size: 1.55em;
+  margin: 0 0 .6em;
+  border-bottom: 2px solid #8fa3c8;
+  padding-bottom: .3em;
+}
+
+/* A static glow supplies the backdrop for the glass effect while the body background stays white. */
+.slide::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5em;
+  z-index: 0;
+  background:
+    radial-gradient(30em 10em at 12% -30%, rgba(59, 130, 246, .5), transparent 60%),
+    radial-gradient(26em 9em at 58% -50%, rgba(139, 92, 246, .42), transparent 60%),
+    radial-gradient(30em 10em at 94% -25%, rgba(6, 182, 212, .4), transparent 60%);
+  pointer-events: none;
+}
+
+/* Base H2 styling, including headings nested in lists and blockquotes. */
+.slide h2 {
+  font-size: 1.25em;
+  color: var(--fg);
+  margin: 1em 0 .5em;
+}
+
+/* Base H3 typography and spacing; the body-specific rule below refines its appearance. */
+.slide h3 {
+  font-size: 1.2em;
+  color: var(--muted);
+  margin: 1em 0 .4em;
+}
+
+/* Vertical spacing between Markdown paragraphs. */
+.slide p {
+  margin: .5em 0;
+}
+
+/* Bold Markdown text uses the shared red emphasis color. */
+.slide :is(b, strong) {
+  color: var(--red);
+}
+
+/* Text highlighted with ==double equals== in Markdown. */
+.slide mark {
+  background: #fef08a;
+  color: var(--fg);
+  padding: .05em .15em;
+  border-radius: .15em;
+}
+
+/* Ordered and unordered list containers share indentation and vertical spacing. */
+.slide ul,
+.slide ol {
+  padding-left: 1.6em;
+  margin: .5em 0;
+}
+
+/* Spacing between individual list items, including nested and task-list items. */
+.slide li {
+  margin: .25em 0;
+}
+
+/* Ordinary Markdown blockquotes, including nested quotation blocks. */
+.slide blockquote {
+  border-left: 3px solid var(--border);
+  padding: .3em 1.2em;
+  margin: .8em 0;
+  color: var(--muted);
+  background: var(--quote-bg);
+}
+
+/* Decorative opening quotation mark inside each ordinary blockquote. */
+.slide blockquote::before {
+  content: "\201C";
+  float: left;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.8em;
+  line-height: .9;
+  margin: .05em .25em 0 0;
+  color: #bdbdbd;
+  user-select: none;
+}
+
+/* Monospace typography shared by inline code and fenced code blocks. */
+.slide code {
+  font-size: .9em;
+  font-family: "LXGW WenKai Mono", "霞鹜文楷等宽", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Inline code spans; clone the background and border when a span wraps. */
+.slide :not(pre)>code {
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 6px;
+  padding: .15em .2em;
+  vertical-align: middle;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* Fenced code block background; its minimum width contains the longest unwrapped line. */
+.slide pre {
+  min-width: min-content;
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 8px;
+  padding: .4em .6em;
+  margin: .8em 0;
+  overflow: visible;
+  /* Use compact line spacing for text diagrams and code blocks. */
+  line-height: 1.15;
+}
+
+/* Code inside a fenced block, with the outer pre element providing its background. */
+.slide pre code {
+  display: block;
+  background: none;
+  padding: 0;
+  color: var(--fg);
+  overflow: visible;
+  line-height: 1.15;
+}
+
+/* Text links in slide content and the cover's email address. */
+.slide a {
+  color: var(--muted);
+}
+
+/* Markdown thematic breaks within a slide; these do not create slide boundaries. */
+.slide hr {
+  border: none;
+  border-top: 2px solid var(--border);
+  margin: 1.2em 0;
+}
+
+/* Markdown images: centered horizontally, with rounded corners and limited width. */
+.slide img {
+  display: block;
+  max-width: 90%;
+  margin: .8em auto;
+  border-radius: 8px;
+}
+
+/* Limit each image to the available body height before scaling it with the rest of the content. */
+.slide .inner img {
+  max-height: var(--image-height, 60vh);
+  object-fit: contain;
+}
+
+/* Fixed current-page / total-pages indicator in the lower-right corner. */
+#pager {
+  position: fixed;
+  right: 2.5vw;
+  bottom: 2.5vh;
+  font-size: 14px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+/* Markdown tables fill the body width and have dark top and bottom rules. */
+.slide table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 2px solid #666;
+  border-bottom: 2px solid #666;
+  margin: .8em 0;
+}
+
+/* Table header and body cells share padding and light row separators. */
+.slide th,
+.slide td {
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  padding: .35em .6em;
+}
+
+/* Table header cells use a darker separator beneath the header row. */
+.slide th {
+  border-bottom: 2px solid #666;
+}
+
+/* Container around a Mermaid diagram embedded in a slide. */
+.slide .mermaid {
+  margin: .6em 0;
+  text-align: center;
+}
+
+/* Cover banner: lowered from the top edge, with a minimum height and centered content.
+   The closing slide shares these dimensions but overrides the banner position below. */
+.slide.cover .titlebar {
+  margin: 20vh -4vw 0;
+  min-height: 23vh;
+  padding: 1.8em 4vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Large centered titles on the opening and closing covers. */
+.slide.cover .titlebar :is(h1, h2) {
+  font-size: 1.75em;
+  text-align: center;
+}
+
+/* Opening-cover metadata area, with space separating it from the title banner. */
+.slide.cover .inner {
+  padding-top: 14vh;
+  text-align: center;
+}
+
+/* Author, email, and date displayed below the opening-cover banner. */
+.slide.cover .cover-meta {
+  color: #000;
+  font-size: 1em;
+  line-height: 1.8;
+}
+
+/* Closing banner: place its center slightly above the viewport's vertical midpoint. */
+.slide.closing .titlebar {
+  position: absolute;
+  top: 46%;
+  left: 0;
+  right: 0;
+  margin: 0;
+  transform: translateY(-50%);
+}
+
+/* The closing slide contains only a banner, with no body or metadata area. */
+.slide.closing .inner { display: none; }
+
+/* Mermaid is rendered to SVG at build time; support both inline SVGs and image references. */
+.slide .mermaid :is(svg, img),
+.slide :is(svg, img).mermaid {
+  display: block;
+  width: 100%;
+  max-width: 100% !important;
+  height: auto;
+  max-height: 64vh;
+  margin: 0 auto;
+  cursor: zoom-in;
+}
+
+/* Full-screen dimmed backdrop behind the enlarged diagram viewer. */
+#diagram-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 5vh 5vw;
+  background: rgba(17, 17, 17, .72);
+  cursor: zoom-out;
+}
+
+/* Visible state of the diagram backdrop and its centered dialog. */
+#diagram-modal.open {
+  display: flex;
+}
+
+/* Rounded white diagram dialog containing the toolbar and clipped viewing area. */
+#diagram-modal .diagram-modal-content {
+  width: min(94vw, 1600px);
+  height: 90vh;
+  padding: 1vh 1vw;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #fff;
+  cursor: default;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, .35);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Upper-right toolbar for zooming out, zooming in, and closing the diagram. */
+#diagram-modal .diagram-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .15em;
+  padding: .25em .4em .6em;
+}
+
+/* Compact, borderless symbol buttons in the diagram toolbar. */
+#diagram-modal .diagram-toolbar button {
+  min-width: 1.8em;
+  border: 0;
+  background: transparent;
+  color: #222;
+  padding: .25em .4em;
+  font: 1.1rem/1 monospace;
+  cursor: pointer;
+}
+
+/* Pointer-hover feedback for the diagram toolbar buttons. */
+#diagram-modal .diagram-toolbar button:hover { color: #7e22ce; }
+
+/* Visible keyboard-focus indicator for the diagram toolbar buttons. */
+#diagram-modal .diagram-toolbar button:focus-visible {
+  outline: 2px solid #7e22ce;
+  outline-offset: 2px;
+}
+
+/* Clipped diagram viewing area; pointer gestures pan the diagram instead of scrolling. */
+#diagram-modal .diagram-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 1vh 1vw;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+/* Cursor feedback while the user drags the enlarged diagram. */
+#diagram-modal .diagram-viewport.dragging { cursor: grabbing; }
+
+/* Inner diagram canvas translated and scaled by JavaScript from its top-left corner. */
+#diagram-modal .diagram-stage {
+  width: 100%;
+  transform-origin: top left;
+}
+
+/* Enlarged diagram artwork; remove the size limits used for its slide preview. */
+#diagram-modal :is(svg, img) {
+  display: block;
+  width: 100%;
+  max-width: none !important;
+  height: auto;
+  max-height: none;
+  margin: 0 auto;
+}
+
+/* GitHub Primer Markdown alerts: spacing scales with slide text. */
+.slide .markdown-alert {
+  padding: .5em 1em;
+  margin-bottom: 1em;
+  color: inherit;
+  border-left: .25em solid var(--alert-color);
+}
+/* Remove extra top spacing from the first child inside a GitHub alert. */
+.slide .markdown-alert > :first-child { margin-top: 0; }
+/* Remove extra bottom spacing from the last child inside a GitHub alert. */
+.slide .markdown-alert > :last-child { margin-bottom: 0; }
+/* GitHub alert title row, aligning the icon with the bold alert label. */
+.slide .markdown-alert .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--alert-color);
+}
+/* Inline Octicon SVG preceding the GitHub alert label; inherit the alert color. */
+.markdown-alert-title .octicon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  margin-right: .5em;
+  overflow: visible;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+/* Blue accent for NOTE alerts. */
+.markdown-alert-note { --alert-color: #0969da; }
+/* Green accent for TIP alerts. */
+.markdown-alert-tip { --alert-color: #1a7f37; }
+/* Purple accent for IMPORTANT alerts. */
+.markdown-alert-important { --alert-color: #8250df; }
+/* Amber accent for WARNING alerts. */
+.markdown-alert-warning { --alert-color: #9a6700; }
+/* Red accent for CAUTION alerts. */
+.markdown-alert-caution { --alert-color: #d1242f; }
+/* Inline formulas remain part of the surrounding text flow. */
+.math-inline { display: inline; }
+/* Formula SVGs participate in baseline alignment and keep glyph overflow visible. */
+.math svg { display: inline-block; overflow: visible; }
+/* Display formulas occupy a centered block with space above and below. */
+.math-display { display: block; text-align: center; margin: .7em 0; }
+/* H3 headings within the slide body use a larger size and the primary text color. */
+.slide .inner h3 { font-size: 1.25em; color: var(--fg); }
+/* Vertical spacing for H4, H5, and H6 headings within slide content. */
+.slide .inner :is(h4, h5, h6) { margin: .8em 0 .4em; }
+/* Formula glyphs inside title banners inherit the surrounding title color. */
+.slide .titlebar .math svg path { fill: currentColor; }
+/* Task-list items reserve the usual list-marker area for their checkboxes. */
+.slide .task-list-item {
+  position: relative;
+  list-style: none;
+}
+/* Task checkbox placed in the marker area and centered on the first line of text. */
+.slide .task-list-item-checkbox {
+  position: absolute;
+  left: -1.25em;
+  top: .5lh;
+  transform: translateY(-50%);
+  font: inherit;
+  width: .8em;
+  height: .8em;
+  margin: 0;
+}
+/* Honor the user's reduced-motion preference for slide navigation. */
+@media (prefers-reduced-motion: reduce) {
+  /* Keep transition completion events while making slide movement effectively instant. */
+  .slide.active, .slide.leaving { animation-duration: .001ms; }
+}
+
+/* Center-aligned table columns generated from Markdown's :---: separator syntax. */
+.slide :is(th, td)[align="center"] { text-align: center; }
+/* Right-aligned table columns generated from Markdown's ---: separator syntax. */
+.slide :is(th, td)[align="right"] { text-align: right; }

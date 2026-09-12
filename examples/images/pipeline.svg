@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 180">
+  <rect x="20" y="40" width="220" height="100" rx="12" fill="#f3e8ff" stroke="#7e22ce"/>
+  <rect x="560" y="40" width="220" height="100" rx="12" fill="#dbeafe" stroke="#2563eb"/>
+  <path d="M260 90H530m-20-15 20 15-20 15" fill="none" stroke="#555" stroke-width="4"/>
+  <g font-family="system-ui,sans-serif" font-size="28" text-anchor="middle" fill="#111">
+    <text x="130" y="100">Markdown</text><text x="670" y="100">HTML + SVG</text>
+  </g>
+</svg>

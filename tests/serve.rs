@@ -136,10 +136,7 @@ fn preview_reloads_atomic_saves_images_and_recovers_from_errors() {
         stop(&mut server);
         assert!(!dir.path().join("site/index.html").exists());
         assert!(!dir.path().join("site/assets").exists());
-        assert_eq!(
-            fs::read_to_string(dir.path().join("site/private.txt")).unwrap(),
-            "not public"
-        );
+        assert!(!dir.path().join("site").exists());
         assert!(dir.path().join("OUTLINE.md").exists());
         assert!(dir.path().join("pic.svg").exists());
         assert!(dir.path().join("new.svg").exists());
@@ -228,48 +225,25 @@ fn serve_defaults_to_dist_and_removes_generated_directory_on_ctrl_c() {
 
 #[cfg(unix)]
 #[test]
-fn cleanup_preserves_sources_user_changes_and_unlisted_files() {
+fn cleanup_removes_the_entire_output_directory() {
     let dir = tempfile::tempdir().unwrap();
-    let assets = dir.path().join("assets");
-    fs::create_dir(&assets).unwrap();
-    // The generated CSS can also be an input resource: it must not be deleted.
-    fs::copy(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/slides.css"),
-        assets.join("slides.css"),
-    )
-    .unwrap();
-    fs::write(
-        dir.path().join("OUTLINE.md"),
-        "# Cover\n## Page\n![source](assets/slides.css)",
-    )
-    .unwrap();
-    fs::write(assets.join("private.txt"), "keep me").unwrap();
-    let (mut server, address) = start(dir.path(), &["--output", "."]);
+    fs::write(dir.path().join("OUTLINE.md"), "# Cover\n## Page").unwrap();
+    let (mut server, address) = start(dir.path(), &[]);
     wait_status(&address, |s| {
         s["revision"] != "initial" && s["error"].is_null()
     });
-    fs::write(assets.join("slides.js"), "user changes").unwrap();
-    // An edited on-disk manifest must never expand the cleanup's file set.
-    let manifest_path = assets.join(".slidown-manifest.json");
-    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
-    use sha2::{Digest, Sha256};
-    manifest["files"]["assets/private.txt"] = format!("{:x}", Sha256::digest(b"keep me")).into();
-    fs::write(&manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    let output = dir.path().join("dist");
+    let page = fs::read_to_string(output.join("index.html")).unwrap();
+    assert!(page.contains("<style>"));
+    assert!(page.contains("<script>"));
+    assert!(page.contains("// Coalesce"));
+    assert!(!output.join("assets").exists());
+    fs::write(output.join("index.html"), "edited output").unwrap();
+    fs::create_dir(output.join("extras")).unwrap();
+    fs::write(output.join("extras/notes.txt"), "remove on exit").unwrap();
     stop(&mut server);
-    assert!(!dir.path().join("index.html").exists());
-    assert!(!assets.join("images").exists());
-    assert!(!assets.join("highlight.css").exists());
-    assert!(assets.join("slides.css").exists());
+    assert!(!output.exists());
     assert!(dir.path().join("OUTLINE.md").exists());
-    assert_eq!(
-        fs::read_to_string(assets.join("slides.js")).unwrap(),
-        "user changes"
-    );
-    assert_eq!(
-        fs::read_to_string(assets.join("private.txt")).unwrap(),
-        "keep me"
-    );
-    assert!(manifest_path.exists());
 }
 
 #[cfg(unix)]
@@ -294,9 +268,5 @@ fn no_successful_preview_leaves_previous_build_untouched() {
         fs::read(dir.path().join("dist/index.html")).unwrap(),
         original
     );
-    assert!(
-        dir.path()
-            .join("dist/assets/.slidown-manifest.json")
-            .exists()
-    );
+    assert!(!dir.path().join("dist/assets").exists());
 }

@@ -8,9 +8,6 @@ use tempfile::TempDir;
 fn build(root: &Path, args: &[&str]) -> Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_slidown"));
     command.current_dir(root).arg("build");
-    if !args.contains(&"--output") {
-        command.args(["--output", "."]);
-    }
     command.args(args).output().unwrap()
 }
 fn success(output: Output) {
@@ -38,7 +35,7 @@ fn metadata_are_independent_from_cover_title() {
     assert!(String::from_utf8_lossy(&result.stderr).contains("warning:"));
     assert!(String::from_utf8_lossy(&result.stderr).contains("extra"));
     success(result);
-    let page = html(dir.path());
+    let page = html(&dir.path().join("dist"));
     assert!(page.contains("<title>Browser &lt;title&gt;</title>"));
     assert!(page.contains("Cover <strong>title</strong>"));
     assert!(page.contains(
@@ -48,17 +45,21 @@ fn metadata_are_independent_from_cover_title() {
     assert!(page.contains("Thank you &lt;all&gt;"));
     assert_eq!(page.matches("<section class=\"slide").count(), 3);
     assert!(!page.contains("__slidown"));
-    assert!(dir.path().join("assets/slides.js").exists());
+    assert!(page.contains("<style>"));
+    assert!(page.contains("<script>"));
+    assert!(!page.contains("<script src="));
+    assert!(!page.contains("<link rel=\"stylesheet\""));
+    assert!(!dir.path().join("dist/assets").exists());
 }
 
 #[test]
 fn cover_only_and_empty_metadata() {
     let dir = fixture("---\ntitle: ''\nclosing: null\nauthor: null\n---\n# Only `title`\n\n");
     success(build(dir.path(), &[]));
-    let page = html(dir.path());
+    let page = html(&dir.path().join("dist"));
     assert_eq!(page.matches("<section class=\"slide").count(), 1);
     assert!(page.contains("<title>Only title</title>"));
-    assert!(!page.contains("cover-meta"));
+    assert!(!page.contains("class=\"cover-meta\""));
 }
 
 #[test]
@@ -103,7 +104,7 @@ fn split_ast_preserves_nested_headings_references_and_code() {
         "# Cover\n## Page\n### Detail\n> ## Quoted\n\n```markdown\n# Literal\n## Literal\n```\n\n[reference][target]\n\n---\n\n## Page\n## Page-1\n\n[target]: https://example.com\n",
     );
     success(build(dir.path(), &[]));
-    let page = html(dir.path());
+    let page = html(&dir.path().join("dist"));
     assert_eq!(page.matches("<section class=\"slide").count(), 4);
     assert!(page.contains("<h3 id=\"detail\">Detail</h3>"));
     assert!(page.contains("<blockquote>"));
@@ -130,7 +131,7 @@ fn local_images_resolve_from_outline_and_remote_images_are_untouched() {
     assert!(page.contains("https://example.invalid/image.png"));
     assert!(page.contains("data:image/png;base64,AAAA"));
     assert_eq!(
-        fs::read_dir(dir.path().join("site/assets/images"))
+        fs::read_dir(dir.path().join("site/assets"))
             .unwrap()
             .count(),
         2
@@ -145,7 +146,7 @@ fn local_images_resolve_from_outline_and_remote_images_are_untouched() {
 fn failed_render_keeps_last_output_and_assets() {
     let dir = fixture("# Cover\n## Good\nOriginal");
     success(build(dir.path(), &[]));
-    let before = html(dir.path());
+    let before = html(&dir.path().join("dist"));
     for source in [
         "# Cover\n## Broken\n![missing](missing.png)",
         "# Cover\n## Broken\n```mermaid\nnot-a-diagram\n```",
@@ -155,41 +156,33 @@ fn failed_render_keeps_last_output_and_assets() {
         let result = build(dir.path(), &[]);
         assert!(!result.status.success());
         assert!(String::from_utf8_lossy(&result.stderr).contains("OUTLINE.md:"));
-        assert_eq!(html(dir.path()), before);
+        assert_eq!(html(&dir.path().join("dist")), before);
     }
 }
 
 #[test]
-fn publishing_protects_unowned_files_and_removes_only_owned_stale_images() {
+fn publishing_replaces_the_entire_output_directory() {
     let dir = fixture("# Cover\n## Images\n![test](input.svg)");
     fs::write(dir.path().join("input.svg"), "image-data").unwrap();
-    fs::create_dir(dir.path().join("assets")).unwrap();
-    fs::write(dir.path().join("assets/keep.txt"), "user data").unwrap();
-    fs::write(dir.path().join("index.html"), "existing website").unwrap();
-    let result = build(dir.path(), &[]);
-    assert!(String::from_utf8_lossy(&result.stderr).contains("output conflict"));
-    assert_eq!(html(dir.path()), "existing website");
-    assert!(!dir.path().join("assets/slides.css").exists());
-    fs::remove_file(dir.path().join("index.html")).unwrap();
+    let output = dir.path().join("dist");
+    fs::create_dir_all(output.join("assets")).unwrap();
+    fs::write(output.join("assets/keep.txt"), "old file").unwrap();
+    fs::write(
+        output.join("assets/.slidown-manifest.json"),
+        "obsolete manifest",
+    )
+    .unwrap();
+    fs::write(output.join("index.html"), "existing website").unwrap();
     success(build(dir.path(), &[]));
-    assert_eq!(
-        fs::read_dir(dir.path().join("assets/images"))
-            .unwrap()
-            .count(),
-        1
-    );
+    assert!(!output.join("assets/keep.txt").exists());
+    assert!(!output.join("assets/.slidown-manifest.json").exists());
+    assert_eq!(fs::read_dir(output.join("assets")).unwrap().count(), 1);
+    fs::write(output.join("index.html"), "manually edited output").unwrap();
+    fs::write(output.join("notes.txt"), "also remove this").unwrap();
     fs::write(dir.path().join("OUTLINE.md"), "# Cover\n## No images").unwrap();
     success(build(dir.path(), &[]));
-    assert_eq!(
-        fs::read_dir(dir.path().join("assets/images"))
-            .unwrap()
-            .count(),
-        0
-    );
-    assert_eq!(
-        fs::read_to_string(dir.path().join("assets/keep.txt")).unwrap(),
-        "user data"
-    );
+    assert_eq!(fs::read_dir(&output).unwrap().count(), 1);
+    assert!(html(&output).contains("No images"));
     assert_eq!(
         fs::read_to_string(dir.path().join("input.svg")).unwrap(),
         "image-data"
@@ -198,14 +191,56 @@ fn publishing_protects_unowned_files_and_removes_only_owned_stale_images() {
 
 #[cfg(unix)]
 #[test]
-fn publishing_does_not_follow_asset_symlinks() {
+fn replacing_output_does_not_follow_nested_symlinks() {
     let dir = fixture("# Cover");
     let other = tempfile::tempdir().unwrap();
-    std::os::unix::fs::symlink(other.path(), dir.path().join("assets")).unwrap();
+    fs::write(other.path().join("keep.txt"), "outside output").unwrap();
+    fs::create_dir(dir.path().join("dist")).unwrap();
+    std::os::unix::fs::symlink(other.path(), dir.path().join("dist/assets")).unwrap();
+    success(build(dir.path(), &[]));
+    assert!(!dir.path().join("dist/assets").exists());
+    assert_eq!(
+        fs::read_to_string(other.path().join("keep.txt")).unwrap(),
+        "outside output"
+    );
+}
+
+#[test]
+fn output_must_be_separate_from_working_directory_and_inputs() {
+    let dir = fixture("# Cover");
+    for output in [".", ".."] {
+        let result = build(dir.path(), &["--output", output]);
+        assert!(!result.status.success());
+        assert!(String::from_utf8_lossy(&result.stderr).contains("output"));
+        assert!(dir.path().join("OUTLINE.md").exists());
+    }
+    fs::create_dir(dir.path().join("site")).unwrap();
+    fs::write(dir.path().join("site/image.svg"), "source").unwrap();
+    fs::write(
+        dir.path().join("OUTLINE.md"),
+        "# Cover\n## Image\n![source](site/image.svg)",
+    )
+    .unwrap();
+    let result = build(dir.path(), &["--output", "site"]);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("must not contain input"));
+    assert_eq!(
+        fs::read_to_string(dir.path().join("site/image.svg")).unwrap(),
+        "source"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn output_directory_cannot_be_a_symlink() {
+    let dir = fixture("# Cover");
+    let other = tempfile::tempdir().unwrap();
+    fs::write(other.path().join("keep.txt"), "outside output").unwrap();
+    std::os::unix::fs::symlink(other.path(), dir.path().join("dist")).unwrap();
     let result = build(dir.path(), &[]);
     assert!(!result.status.success());
     assert!(String::from_utf8_lossy(&result.stderr).contains("symlink"));
-    assert_eq!(fs::read_dir(other.path()).unwrap().count(), 0);
+    assert!(other.path().join("keep.txt").exists());
 }
 
 #[test]
@@ -213,7 +248,7 @@ fn native_svgs_alerts_and_highlighting_render_offline() {
     let dir = tempfile::tempdir().unwrap();
     let source = format!("{}/examples/OUTLINE.md", env!("CARGO_MANIFEST_DIR"));
     success(build(dir.path(), &["--outline", &source]));
-    let page = html(dir.path());
+    let page = html(&dir.path().join("dist"));
     assert_eq!(page.matches("<section class=\"slide").count(), 13);
     assert!(page.contains("<mark>Keep this takeaway in mind</mark>"));
     assert!(page.contains("<del>A shorter way to strike text</del>"));
@@ -243,7 +278,7 @@ fn multiple_mermaid_svgs_have_distinct_resolvable_fragment_ids() {
     let diagram = "```mermaid\nflowchart LR\nA --> B\n```\n";
     let dir = fixture(&format!("# Cover\n## Diagrams\n{diagram}\n{diagram}"));
     success(build(dir.path(), &[]));
-    let page = html(dir.path());
+    let page = html(&dir.path().join("dist"));
     let mut all_ids = std::collections::HashSet::new();
     for section in page.split("<svg").skip(1) {
         let end = section.find("</svg>").unwrap();
@@ -275,7 +310,7 @@ fn html_inside_unknown_language_code_is_escaped() {
     let dir =
         fixture("# Cover\n## Code\n```unknown-language\n<script>alert('literal')</script>\n```\n");
     success(build(dir.path(), &[]));
-    let page = html(dir.path());
+    let page = html(&dir.path().join("dist"));
     assert!(page.contains("&lt;script&gt;"));
     assert!(!page.contains("<script>alert"));
 }
@@ -291,10 +326,25 @@ fn build_defaults_to_dist_and_keeps_its_output() {
             .unwrap(),
     );
     assert!(dir.path().join("dist/index.html").exists());
-    assert!(
-        dir.path()
-            .join("dist/assets/.slidown-manifest.json")
-            .exists()
-    );
+    assert_eq!(fs::read_dir(dir.path().join("dist")).unwrap().count(), 1);
+    let page = html(&dir.path().join("dist"));
+    let css = page
+        .split("<style>\n")
+        .nth(1)
+        .unwrap()
+        .split("\n</style>")
+        .next()
+        .unwrap();
+    let script = page
+        .split("<script>\n")
+        .nth(1)
+        .unwrap()
+        .split("\n</script>")
+        .next()
+        .unwrap();
+    assert!(!css.contains("/*"));
+    assert!(!css.contains('\n'));
+    assert!(script.len() < include_str!("../assets/slides.js").len());
+    assert!(!script.contains("// Coalesce"));
     assert!(!dir.path().join("index.html").exists());
 }

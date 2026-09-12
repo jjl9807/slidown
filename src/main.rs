@@ -1,4 +1,5 @@
 mod build;
+mod bundle;
 mod highlight;
 mod render;
 mod serve;
@@ -37,7 +38,7 @@ pub struct Input {
     /// Markdown input, relative to the working directory.
     #[arg(long, default_value = "OUTLINE.md")]
     outline: PathBuf,
-    /// Output directory, relative to the working directory.
+    /// Generated directory, replaced in full on every successful build.
     #[arg(long, default_value = "dist")]
     output: PathBuf,
 }
@@ -53,7 +54,7 @@ async fn main() {
 async fn run() -> Result<()> {
     match Cli::parse().command {
         Command::Build(input) => {
-            let mut compiler = render::Compiler::new();
+            let mut compiler = render::Compiler::new(true)?;
             let deck = compiler.compile(&input.outline)?;
             build::publish(&deck, &input.output, &compiler.dependencies)?;
             for warning in &deck.warnings {

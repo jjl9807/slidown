@@ -12,7 +12,7 @@ use axum::{
 };
 use serde::Serialize;
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeMap,
     net::{IpAddr, SocketAddr},
     path::PathBuf,
     sync::{
@@ -73,7 +73,7 @@ pub async fn run(input: Input, host: IpAddr, port: u16, open: bool) -> Result<()
     running.store(false, Ordering::Relaxed);
     let outcome = worker.await.context("preview worker failed")??;
     if let Some(artifacts) = outcome.artifacts {
-        artifacts.cleanup(&outcome.dependencies)?;
+        artifacts.cleanup()?;
         println!("Preview stopped; generated artifacts cleaned up.");
     }
     result.context("preview server failed")
@@ -81,12 +81,11 @@ pub async fn run(input: Input, host: IpAddr, port: u16, open: bool) -> Result<()
 
 #[derive(Default)]
 struct WatchOutcome {
-    artifacts: Option<build::Artifacts>,
-    dependencies: BTreeSet<PathBuf>,
+    artifacts: Option<build::OutputDirectory>,
 }
 
 fn watch(input: Input, state: Shared, running: Arc<AtomicBool>) -> Result<WatchOutcome> {
-    let mut compiler = Compiler::new();
+    let mut compiler = Compiler::new(false)?;
     let mut outcome = WatchOutcome::default();
     let mut signatures = BTreeMap::new();
     let mut first = true;
@@ -115,9 +114,6 @@ fn watch(input: Input, state: Shared, running: Arc<AtomicBool>) -> Result<WatchO
                 )?);
                 Ok(deck)
             });
-            outcome
-                .dependencies
-                .extend(compiler.dependencies.iter().cloned());
             signatures = fingerprints(&compiler);
             // Preserve pre-build fingerprints: edits made during rendering need another build.
             for (path, signature) in before {

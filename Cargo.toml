@@ -10,7 +10,9 @@ anyhow = "1"
 axum = "0.8"
 clap = { version = "4", features = ["derive"] }
 comrak = { version = "0.55", default-features = false }
+lightningcss = { version = "1.0.0-alpha.71", default-features = false }
 mermaid-rs-renderer = { version = "0.3.1", default-features = false }
+oxc = { version = "0.149", features = ["codegen", "mangler", "minifier"] }
 percent-encoding = "2"
 quick-xml = "0.41"
 ratex-parser = "0.1.14"
@@ -20,11 +22,10 @@ ratex-svg = { version = "0.1.14", features = ["embed-fonts"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-sha2 = "0.10"
+sha2 = "0.11"
 syntect = { version = "5", default-features = false, features = ["default-fancy"] }
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal", "time", "sync"] }
 
 [dev-dependencies]
 roxmltree = "0.21"
-

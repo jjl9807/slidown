@@ -105,7 +105,7 @@ Common Markdown elements are supported, plus tables, task lists, autolinks, stri
 - **Code:** label fences with a language such as `rust`, `python`, or `bash`. Unknown labels fall back to first-line detection or plain text.
 - **Mermaid:** use a `mermaid` fence with an explicit diagram type, such as `flowchart LR`. Supported syntax follows the pinned mermaid-rs-renderer version and may differ from mermaid-js.
 - **Math:** use `$...$` inline or `$$...$$` for display math, preferably with display delimiters on separate lines. Math follows RaTeX's supported syntax, not full LaTeX documents. Code does not parse math; escape a literal dollar sign as `\$`.
-- **Images:** local paths resolve from the Markdown file and are copied to `assets/images/`. Spaces, Unicode filenames, and reference-style images work. Alt text, titles, URL queries, and fragments are preserved. Missing local images stop the build. Remote URLs and `data:` images remain unchanged; remote images require network access.
+- **Images:** local paths resolve from the Markdown file and are copied to the flat `assets/` directory. Spaces, Unicode filenames, and reference-style images work. Alt text, titles, URL queries, and fragments are preserved. Missing local images stop the build. Remote URLs and `data:` images remain unchanged; remote images require network access.
 
 Footnotes and raw HTML are unsupported. HTML inside code blocks is escaped and displayed as code.
 
@@ -113,13 +113,13 @@ Math fonts are embedded. Extra characters, such as Chinese text in formulas, may
 
 ## Output and preview
 
-Both commands write `index.html` and `assets/` to `dist/` by default; use `--output` to change the directory. Styles, scripts, and copied images are local resources, while Mermaid and formula SVGs are embedded in the HTML.
+Both commands write to `dist/` by default; use `--output` to change the directory. CSS, JavaScript, Mermaid, and formula SVGs are embedded in `index.html`. `build` minifies CSS and JavaScript; `serve` keeps them readable. `assets/` contains only copied images and is omitted when there are none.
 
-Keep `assets/.slidown-manifest.json` in the build directory: it identifies generated files for safe updates and obsolete-asset cleanup. Browsers do not need it, so deployment can omit it. Builds protect source files and user edits; conflicting files or symlinks produce an error. Rendering or overwrite-validation errors leave the last successful output intact.
+The output directory is managed entirely by Slidown. Every successful build replaces it in full, including old images and manually added or edited files. New output is prepared before replacing the previous build, so rendering failures leave it intact. Use a dedicated directory separate from the working directory and input files. No manifest is generated.
 
 `serve` listens on `127.0.0.1:3000`. Use `--host` and `--port` to change the address, `--port 0` for an available port, or `--open` to launch the browser. It watches Markdown and local images, refreshes on successful builds, and preserves the current slide. Build errors appear over the last successful preview and clear when fixed. Only generated files are served, and the reload script is never written into the static output.
 
-Ctrl-C waits for any active build, then removes the preview's generated files and empty output directories. Source files, user files, and modified artifacts are preserved. If no preview build succeeds, existing output is left alone. `build` keeps its output; `serve` also cleans prior `build` output if it successfully rebuilds it in the same directory.
+Ctrl-C waits for any active build, then removes the entire preview output directory. If no preview build succeeds, existing output is left alone. `build` keeps its output; `serve` also cleans prior `build` output if it successfully rebuilds it in the same directory.
 
 ## Presentation controls
 
@@ -143,7 +143,7 @@ cargo clippy --all-targets -- -D warnings
 cargo test
 ```
 
-Tests cover parsing, rendering, asset handling, output protection, and live preview. Preview tests need permission to listen on a loopback port.
+Tests cover parsing, rendering, bundling, minification, output replacement, and live preview. Preview tests need permission to listen on a loopback port.
 
 Optional browser checks require Node.js 22+ and a Chromium-based browser:
 

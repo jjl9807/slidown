@@ -2,8 +2,19 @@
 name = "slidown"
 version = "0.1.0"
 edition = "2024"
+authors = ["jl.jiang <jiangjl9807@gmail.com>"]
 description = "Build offline HTML slides from Markdown, with native Mermaid and LaTeX SVG rendering"
 license = "MIT"
+exclude = ["/.github"]
+readme = "README.md"
+repository = "https://github.com/jjl9807/slidown"
+keywords = [
+    "deck",
+    "markdown",
+    "presentation",
+    "slides",
+]
+categories = ["command-line-utilities", "text-processing"]
 
 [dependencies]
 anyhow = "1"

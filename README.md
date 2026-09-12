@@ -13,7 +13,13 @@ Install with Cargo:
 
 ```bash
 cargo install slidown
+```
 
+Or download the binary for your platform from the [latest release](https://github.com/jjl9807/slidown/releases/latest), decompress it with `zstd`, and place it in a directory on your `PATH` as `slidown` (`slidown.exe` on Windows). On Linux and macOS, make it executable with `chmod +x slidown`.
+
+Verify the installation with `slidown --version`, then build or preview your slides:
+
+```bash
 # Read OUTLINE.md and write to ./dist/ by default.
 slidown build
 slidown serve

@@ -316,6 +316,29 @@ fn html_inside_unknown_language_code_is_escaped() {
 }
 
 #[test]
+fn build_preserves_spaces_around_inline_markdown() {
+    let dir = fixture(
+        "# 中文 **bold** 标题 `code` 结束\n\n## 中文 ==mark== 标题\n\n\
+         中文 **bold** 中文 ==mark== 中文 `code` 中文。\n\n\
+         **bold** ==mark== `one` `two` *emphasis* [link](https://example.com) 中文。\n\n\
+         中文**bold**中文==mark==中文`code`中文。\n\n\
+         **第一行**\n下一行 `a  b` 结束。\n",
+    );
+    success(build(dir.path(), &[]));
+    let page = html(&dir.path().join("dist"));
+    for expected in [
+        "中文 <strong>bold</strong> 标题 <code>code</code> 结束",
+        "中文 <mark>mark</mark> 标题",
+        "<p>中文 <strong>bold</strong> 中文 <mark>mark</mark> 中文 <code>code</code> 中文。</p>",
+        "<p><strong>bold</strong> <mark>mark</mark> <code>one</code> <code>two</code> <em>emphasis</em> <a href=\"https://example.com\">link</a> 中文。</p>",
+        "<p>中文<strong>bold</strong>中文<mark>mark</mark>中文<code>code</code>中文。</p>",
+        "<p><strong>第一行</strong> 下一行 <code>a  b</code> 结束。</p>",
+    ] {
+        assert!(page.contains(expected), "missing HTML: {expected}");
+    }
+}
+
+#[test]
 fn build_defaults_to_dist_and_keeps_its_output() {
     let dir = fixture("# Cover\n## Page\nHello");
     success(

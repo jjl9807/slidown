@@ -48,11 +48,11 @@ pub fn javascript(source: &str) -> Result<String> {
         .code)
 }
 
-/// Collapse layout whitespace while leaving preformatted and executable content byte-for-byte.
+/// Collapse HTML whitespace runs to one space, including at inline element boundaries,
+/// while leaving preformatted and executable content byte-for-byte.
 pub fn html(source: &str) -> String {
     let mut out = String::with_capacity(source.len());
     let mut rest = source;
-    let mut pending_space = false;
     while !rest.is_empty() {
         if let Some(open) = ["<pre", "<code", "<script", "<style"]
             .iter()
@@ -60,7 +60,7 @@ pub fn html(source: &str) -> String {
             .min_by_key(|(index, _)| *index)
         {
             let (index, tag) = open;
-            let prefix = collapse_html_whitespace(&rest[..index], pending_space);
+            let prefix = collapse_html_whitespace(&rest[..index]);
             out.push_str(&prefix);
             let Some(end) = rest[index..].find('>') else {
                 out.push_str(&rest[index..]);
@@ -72,31 +72,68 @@ pub fn html(source: &str) -> String {
             if let Some(body_end) = rest[body_start..].find(&close) {
                 out.push_str(&rest[body_start..body_start + body_end + close.len()]);
                 rest = &rest[body_start + body_end + close.len()..];
-                pending_space = false;
                 continue;
             }
             out.push_str(&rest[body_start..]);
             break;
         }
-        let collapsed = collapse_html_whitespace(rest, pending_space);
+        let collapsed = collapse_html_whitespace(rest);
         out.push_str(&collapsed);
         break;
     }
     out
 }
 
-fn collapse_html_whitespace(source: &str, mut pending: bool) -> String {
+fn collapse_html_whitespace(source: &str) -> String {
     let mut out = String::new();
     for ch in source.chars() {
-        if ch.is_whitespace() {
-            pending = true;
-        } else {
-            if pending && !out.ends_with('>') && !out.is_empty() {
+        // Emit the space immediately so leading/trailing separators survive when
+        // html() splits the input around a preserved element such as <code>.
+        // Unicode spaces (e.g. NBSP and ideographic space) are content, not layout.
+        if matches!(ch, ' ' | '\t' | '\n' | '\r' | '\u{000c}') {
+            if !out.ends_with(' ') {
                 out.push(' ');
             }
-            pending = false;
+        } else {
             out.push(ch);
         }
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::html;
+
+    #[test]
+    fn html_preserves_inline_separators_without_adding_spaces() {
+        for source in [
+            "<p>中文 <strong>bold</strong> 中文 <mark>mark</mark> 中文</p>",
+            "<p>中文 <code>code</code> 中文</p>",
+            "<p><strong>bold</strong> <mark>mark</mark> <code>one</code> <code>two</code></p>",
+            "<p>中文<strong>bold</strong><mark>mark</mark><code>code</code>中文</p>",
+            "<p><strong> leading and trailing </strong>text</p>",
+        ] {
+            assert_eq!(html(source), source);
+        }
+    }
+
+    #[test]
+    fn html_collapses_only_html_whitespace() {
+        assert_eq!(
+            html("<p>中文  \t\r\n<strong>bold</strong>\n\t<code>code</code>\x0c 中文</p>"),
+            "<p>中文 <strong>bold</strong> <code>code</code> 中文</p>"
+        );
+        let source = "<p>中文\u{a0}\u{a0}<mark>mark</mark>\u{3000}中文</p>";
+        assert_eq!(html(source), source);
+    }
+
+    #[test]
+    fn html_preserves_preformatted_and_executable_contents() {
+        let source = "<pre><code>  one\n\t two  </code>\n</pre> \
+                      <code>one  two</code> \
+                      <script>const text = 'one  two';\n</script> \
+                      <style>/* keep  spacing */\np { color: red; }</style>";
+        assert_eq!(html(source), source);
+    }
 }

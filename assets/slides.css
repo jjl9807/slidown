@@ -338,7 +338,7 @@ body {
   text-align: center;
 }
 
-/* Author, email, and date displayed below the opening-cover banner. */
+/* Author, affiliation, email, and date displayed below the opening-cover banner. */
 .slide.cover .cover-meta {
   color: #000;
   font-size: 1em;

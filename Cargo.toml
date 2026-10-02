@@ -1,6 +1,6 @@
 [package]
 name = "slidown"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["jl.jiang <jiangjl9807@gmail.com>"]
 description = "Build offline HTML slides from Markdown, with native Mermaid and LaTeX SVG rendering"
@@ -23,9 +23,9 @@ clap = { version = "4", features = ["derive"] }
 comrak = { version = "0.55", default-features = false }
 lightningcss = { version = "1.0.0-alpha.71", default-features = false }
 mermaid-rs-renderer = { version = "0.3.1", default-features = false }
-oxc = { version = "0.149", features = ["codegen", "mangler", "minifier"] }
+oxc = { version = "0.152", features = ["codegen", "mangler", "minifier"] }
 percent-encoding = "2"
-quick-xml = "0.41"
+quick-xml = "0.42"
 ratex-parser = "0.1.14"
 ratex-layout = "0.1.14"
 ratex-types = "0.1.14"

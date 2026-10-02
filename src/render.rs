@@ -37,6 +37,7 @@ pub struct Compiler {
 struct Metadata {
     title: Option<String>,
     author: Option<String>,
+    affiliation: Option<String>,
     date: Option<String>,
     email: Option<String>,
     closing: Option<String>,
@@ -101,6 +102,7 @@ fn metadata(source: &str, path: &Path) -> Result<(Metadata, String, Vec<String>)
             let field = match name {
                 "title" => &mut meta.title,
                 "author" => &mut meta.author,
+                "affiliation" => &mut meta.affiliation,
                 "date" => &mut meta.date,
                 "email" => &mut meta.email,
                 "closing" => &mut meta.closing,
@@ -402,11 +404,18 @@ impl Compiler {
             "<section class=\"slide cover active no-anim\"><div class=\"titlebar\">{}</div><div class=\"inner\">",
             render(cover)?
         );
-        if meta.author.is_some() || meta.date.is_some() || meta.email.is_some() {
+        if meta.author.is_some()
+            || meta.affiliation.is_some()
+            || meta.email.is_some()
+            || meta.date.is_some()
+        {
             content.push_str("<p class=\"cover-meta\">");
             let mut parts = Vec::new();
             if let Some(author) = &meta.author {
                 parts.push(escape(author));
+            }
+            if let Some(affiliation) = &meta.affiliation {
+                parts.push(escape(affiliation));
             }
             if let Some(email) = &meta.email {
                 let href = percent_encoding::utf8_percent_encode(
@@ -573,15 +582,12 @@ fn namespace_svg(svg: &str, prefix: &str) -> Result<String> {
         let event = reader.read_event()?;
         match event {
             Event::Start(ref start) | Event::Empty(ref start) => {
-                let name = std::str::from_utf8(start.name().as_ref())?.to_owned();
+                let name = start.name().as_ref().to_owned();
                 let mut output = BytesStart::new(name);
                 for attribute in start.attributes() {
                     let attr = attribute?;
-                    let attr_name = std::str::from_utf8(attr.key.as_ref())?;
-                    let value = attr.decoded_and_normalized_value(
-                        quick_xml::XmlVersion::Implicit1_0,
-                        reader.decoder(),
-                    )?;
+                    let attr_name = attr.key.as_ref();
+                    let value = attr.normalized_value(quick_xml::XmlVersion::Implicit1_0)?;
                     let value = if attr_name == "id" {
                         format!("{prefix}{value}")
                     } else if (attr_name == "href" || attr_name == "xlink:href")

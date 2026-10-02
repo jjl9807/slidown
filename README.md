@@ -44,8 +44,9 @@ Open `dist/index.html` directly in a browser or deploy `dist/` to a static file 
 ---
 title: Browser tab title
 author: Your name
-date: "2026-09-12"
+affiliation: Your organization
 email: author@example.com
+date: "2026-09-12"
 closing: Thank you!
 ---
 
@@ -98,11 +99,12 @@ Optional YAML front matter must start the document and use `---` delimiters. Rec
 | --- | --- | --- |
 | `title` | Browser tab title | Uses the H1 text; does not change the cover title |
 | `author` | Cover author | Hidden |
+| `affiliation` | Author's organization, displayed between author and email | Hidden |
 | `email` | Cover email, with a `mailto:` link | Hidden |
 | `date` | Cover date, displayed as written | Hidden |
 | `closing` | Title of an additional closing slide | No closing slide |
 
-The cover contains only its title and metadata. The closing slide counts toward the page total. Unknown fields produce warnings; invalid YAML, duplicate fields, or incorrect field types stop the build. Quote dates to keep them as text.
+The cover contains only its title and metadata, in the order author, affiliation, email, and date. Omitted, blank, or `null` metadata fields are hidden without leaving empty lines. The closing slide counts toward the page total. Unknown fields produce warnings; invalid YAML, duplicate fields, or incorrect field types stop the build. Quote dates to keep them as text.
 
 ## Supported content
 

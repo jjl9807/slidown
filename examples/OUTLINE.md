@@ -1,8 +1,9 @@
 ---
 title: Slidown · Static HTML Slides
 author: Slidown
-date: "2026-09-12"
+affiliation: Slidown Project
 email: hello@example.com
+date: "2026-09-12"
 closing: Thank you!
 ---
 

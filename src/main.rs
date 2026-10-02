@@ -6,6 +6,7 @@ mod serve;
 
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
+use colored::Colorize;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -46,7 +47,7 @@ pub struct Input {
 #[tokio::main]
 async fn main() {
     if let Err(error) = run().await {
-        eprintln!("error: {error:#}");
+        eprintln!("{} {error:#}", "error:".red().bold());
         std::process::exit(1);
     }
 }
@@ -58,7 +59,7 @@ async fn run() -> Result<()> {
             let deck = compiler.compile(&input.outline)?;
             build::publish(&deck, &input.output, &compiler.dependencies)?;
             for warning in &deck.warnings {
-                eprintln!("warning: {warning}");
+                eprintln!("{} {warning}", "warning:".yellow().bold());
             }
             println!(
                 "Built {} slides: {}",

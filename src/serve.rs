@@ -10,6 +10,7 @@ use axum::{
     response::{IntoResponse, Response},
     routing::get,
 };
+use colored::Colorize;
 use serde::Serialize;
 use std::{
     collections::BTreeMap,
@@ -141,12 +142,12 @@ fn watch(input: Input, state: Shared, running: Arc<AtomicBool>) -> Result<WatchO
                     preview.files = files;
                     println!("Built {slides} slides");
                     for warning in &preview.status.warnings {
-                        eprintln!("warning: {warning}");
+                        eprintln!("{} {warning}", "warning:".yellow().bold());
                     }
                 }
                 Err(error) => {
                     let message = format!("{error:#}");
-                    eprintln!("error: {message}");
+                    eprintln!("{} {message}", "error:".red().bold());
                     preview.status.error = Some(message);
                 }
             }
@@ -249,6 +250,9 @@ fn open_browser(url: &str) {
     let result: std::io::Result<std::process::Child> =
         Err(std::io::Error::other("unsupported platform"));
     if let Err(error) = result {
-        eprintln!("warning: could not open browser: {error}");
+        eprintln!(
+            "{} could not open browser: {error}",
+            "warning:".yellow().bold()
+        );
     }
 }

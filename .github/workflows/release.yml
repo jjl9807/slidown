@@ -88,14 +88,14 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $name = "slidown-${{ matrix.target }}"
+          $name = "slidown-${{ matrix.target }}.exe"
           Copy-Item "target/${{ matrix.target }}/release/${{ matrix.binary }}" $name
           zstd --rm --no-progress -q -19 "$name" -o "$name.zst"
       - name: Upload compressed binary
         uses: actions/upload-artifact@v7
         with:
           name: slidown-${{ matrix.target }}
-          path: slidown-${{ matrix.target }}.zst
+          path: slidown-${{ matrix.target }}${{ runner.os == 'Windows' && '.exe' || '' }}.zst
           if-no-files-found: error
 
   release:

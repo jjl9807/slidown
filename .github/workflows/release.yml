@@ -1,4 +1,4 @@
-name: Release `slidown`
+name: Release
 
 on:
   push:
@@ -105,6 +105,18 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          version: v2.14.2
+          config: cliff.toml
+          args: --current
+          github_token: ${{ github.token }}
+        env:
+          OUTPUT: release-notes.md
       - uses: actions/download-artifact@v8
         with:
           pattern: slidown-*
@@ -123,4 +135,4 @@ jobs:
           gh release create "$TAG" release-assets/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "$VERSION" \
-            --generate-notes
+            --notes-file release-notes.md
